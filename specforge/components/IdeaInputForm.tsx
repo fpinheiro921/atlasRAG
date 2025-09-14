@@ -15,6 +15,8 @@ interface IdeaInputFormProps {
   isLoading: boolean;
   apiKeyMissing: boolean;
   availableModules: ModuleInfo[];
+  selectedModules: string[];
+  onSelectedModulesChange: (selected: string[]) => void;
   isLoggedIn: boolean;
   generationsRemaining: number | null;
   userProfile: UserProfile | null;
@@ -30,6 +32,8 @@ export const IdeaInputForm: React.FC<IdeaInputFormProps> = ({
   isLoading,
   apiKeyMissing,
   availableModules,
+  selectedModules,
+  onSelectedModulesChange,
   isLoggedIn,
   generationsRemaining,
   userProfile,
@@ -37,7 +41,7 @@ export const IdeaInputForm: React.FC<IdeaInputFormProps> = ({
   const charCount = ideaText.length;
   const isFormDisabled = !isLoggedIn || isLoading;
   const hasNoGenerationsLeft = generationsRemaining !== null && generationsRemaining <= 0;
-  const isButtonDisabled = isFormDisabled || charCount < MIN_CHARS || charCount > MAX_CHARS || apiKeyMissing || hasNoGenerationsLeft;
+  const isButtonDisabled = isFormDisabled || charCount < MIN_CHARS || charCount > MAX_CHARS || selectedModules.length === 0 || apiKeyMissing || hasNoGenerationsLeft;
 
   const handleInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     setIdeaText(event.target.value);
@@ -45,6 +49,13 @@ export const IdeaInputForm: React.FC<IdeaInputFormProps> = ({
 
   const handleClearInput = () => {
     setIdeaText('');
+  };
+
+  const handleModuleChange = (moduleId: string) => {
+    const newSelectedModules = selectedModules.includes(moduleId)
+      ? selectedModules.filter(id => id !== moduleId)
+      : [...selectedModules, moduleId];
+    onSelectedModulesChange(newSelectedModules);
   };
 
   return (
@@ -91,24 +102,39 @@ export const IdeaInputForm: React.FC<IdeaInputFormProps> = ({
 
       <div className="my-6">
         <h3 className="text-lg font-bold text-text-heading mb-3 font-display">
-          Included Documentation Modules:
+          Select Documentation Modules:
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
-          {availableModules.map(module => (
-              <div 
-                key={module.id} 
-                className="flex items-center p-3 bg-base/50 rounded-md border border-transparent gap-3"
+          {availableModules.map(module => {
+            const isModuleDisabled = isFormDisabled;
+            const isSelected = selectedModules.includes(module.id);
+
+            return (
+              <label
+                key={module.id}
+                className={`flex items-center p-3 bg-base/50 rounded-md border border-transparent
+                            hover:border-accent transition-colors gap-3
+                            ${isModuleDisabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}
+                            ${isSelected ? 'bg-accent/10 border-accent ring-1 ring-accent' : ''}`}
               >
-                <span className="material-symbols-outlined text-accent" aria-hidden="true">check_box</span>
+                <input
+                  type="checkbox"
+                  className="h-5 w-5 accent-accent bg-panel border-[#47505d] border-2 rounded focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-base disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                  checked={isSelected}
+                  onChange={() => handleModuleChange(module.id)}
+                  disabled={isModuleDisabled}
+                />
                 <span className="material-symbols-outlined text-accent/80" aria-hidden="true">{module.icon}</span>
                 <span className="text-text-body text-sm select-none flex-1">{module.name}</span>
-              </div>
-            )
-          )}
+              </label>
+            );
+          })}
         </div>
-        <p className="text-text-muted text-xs mt-2">
-            To ensure a comprehensive and coherent document, all modules are now included in every generation.
-        </p>
+        {selectedModules.length === 0 && isLoggedIn && (
+          <p className="text-danger-DEFAULT text-xs mt-2" role="alert">
+            Please select at least one module to generate.
+          </p>
+        )}
       </div>
 
       <div className="mt-6 flex flex-col sm:flex-row justify-end items-center">

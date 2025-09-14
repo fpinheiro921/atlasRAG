@@ -2,19 +2,20 @@
 import React, { useState, useEffect } from 'react';
 
 const stages = [
-  // Stage 1: RAPID-MVP Context Generation
-  { name: "Initializing AI & Parsing Idea...", icon: "psychology", duration: 5000 },
-  { name: "Phase 0-1: Idea Capture & Refinement...", icon: "lightbulb", duration: 10000 },
-  { name: "Phase 2-3: Customer Pulse & MVP Features...", icon: "groups", duration: 15000 },
-  { name: "Phase 4-5: Design Ethos & Competitor Scan...", icon: "palette", duration: 15000 },
-  { name: "Phase 6-7A: Visual Analysis & Context Collation...", icon: "wysiwyg", duration: 15000 },
-  // Stage 2: Final Documentation Generation
-  { name: "Preparing Final Documentation Prompts...", icon: "assignment", duration: 5000 },
+  // Stage 1: Concept Expansion - Refine the raw idea into a structured brief
+  { name: "Analyzing your app idea...", icon: "psychology", duration: 5000 },
+  { name: "Inferring target users & personas...", icon: "groups", duration: 10000 },
+  { name: "Defining core features & MVP scope...", icon: "lightbulb", duration: 10000 },
+  { name: "Establishing KPIs & success metrics...", icon: "trending_up", duration: 8000 },
+  { name: "Finalizing refined project brief...", icon: "fact_check", duration: 7000 },
+  // Stage 2: Documentation Generation - Create comprehensive specs from the refined brief
   { name: "Generating PRD (Product Requirements Document)...", icon: "description", duration: 15000 },
   { name: "Defining Tech Stack & Project Structure...", icon: "hub", duration: 15000 },
-  { name: "Designing Schema & User Flows...", icon: "account_tree", duration: 15000 },
-  { name: "Crafting Styling Guidelines...", icon: "style", duration: 10000 },
-  { name: "Compiling Full Specification...", icon: "article", duration: 5000 },
+  { name: "Designing Database Schema & Data Models...", icon: "schema", duration: 12000 },
+  { name: "Mapping User Flows & Journey...", icon: "flowsheet", duration: 12000 },
+  { name: "Creating Implementation Plan...", icon: "event_note", duration: 10000 },
+  { name: "Establishing Security & Styling Guidelines...", icon: "security", duration: 10000 },
+  { name: "Compiling Full Specification...", icon: "article", duration: 6000 },
 ];
 
 const totalDuration = stages.reduce((acc, s) => acc + s.duration, 0); // 125000ms

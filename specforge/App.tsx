@@ -52,6 +52,8 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [geminiApiKeyIsSet, setGeminiApiKeyIsSet] = useState<boolean>(false);
+  const [generationPhase, setGenerationPhase] = useState<'concept' | 'spec' | 'idle'>('idle');
+  const [refinedBrief, setRefinedBrief] = useState<string>('');
   const [selectedModules, setSelectedModules] = useState<string[]>(
     ALL_AVAILABLE_MODULES.map(m => m.id) 
   );
@@ -143,6 +145,15 @@ const App: React.FC = () => {
     setGeneratedSpec(prevSpec => prevSpec + chunk);
   }, []);
 
+  const handleConceptExpansionChunkReceived = useCallback((chunk: string) => {
+    setRefinedBrief(prevBrief => prevBrief + chunk);
+  }, []);
+
+  const handleConceptExpansionComplete = useCallback((completedBrief: string) => {
+    setRefinedBrief(completedBrief);
+    setGenerationPhase('spec');
+  }, []);
+
   const handleGenerationUsed = useCallback(async () => {
     if (!currentUser || !userProfile) return;
     
@@ -179,15 +190,24 @@ const App: React.FC = () => {
     setIsLoading(true);
     setError(null);
     setGeneratedSpec('');
+    setRefinedBrief('');
     setCurrentSpecId(null);
+    setGenerationPhase('concept');
 
     try {
       await handleGenerationUsed(); // Decrement count before generation starts
-      const fullSpec = await generateSpecFromIdea(ideaText, selectedModules, handleChunkReceived);
-      
+      const fullSpec = await generateSpecFromIdea(
+        ideaText,
+        selectedModules,
+        handleChunkReceived,
+        handleConceptExpansionChunkReceived,
+        handleConceptExpansionComplete
+      );
+
       // All users now get the full, unfiltered spec. The value is in the generation limits and premium features.
       setGeneratedSpec(fullSpec);
-      
+      setGenerationPhase('idle');
+
     } catch (err) {
       console.error("Error generating spec:", err);
       if (err instanceof Error) {
@@ -200,10 +220,11 @@ const App: React.FC = () => {
           const profile = await getOrCreateUserProfile(currentUser.uid);
           setUserProfile(profile);
       }
+      setGenerationPhase('idle');
     } finally {
       setIsLoading(false);
     }
-  }, [ideaText, geminiApiKeyIsSet, selectedModules, handleChunkReceived, currentUser, generationsRemaining, handleGenerationUsed]);
+  }, [ideaText, geminiApiKeyIsSet, selectedModules, handleChunkReceived, handleConceptExpansionChunkReceived, handleConceptExpansionComplete, currentUser, generationsRemaining, handleGenerationUsed]);
 
 
   const navigateToApp = () => {
@@ -394,9 +415,11 @@ const App: React.FC = () => {
           ideaText={ideaText}
           setIdeaText={setIdeaText}
           onGenerate={handleGenerateSpec}
-          isLoading={isLoading} 
-          apiKeyMissing={!geminiApiKeyIsSet} 
+          isLoading={isLoading}
+          apiKeyMissing={!geminiApiKeyIsSet}
           availableModules={ALL_AVAILABLE_MODULES}
+          selectedModules={selectedModules}
+          onSelectedModulesChange={setSelectedModules}
           isLoggedIn={!!currentUser}
           generationsRemaining={generationsRemaining}
           userProfile={userProfile}

@@ -368,9 +368,131 @@ export function Button({ variant = 'primary', ...props }: ButtonHTMLAttributes<H
 `;
 
 
-export const generateSpecFromIdea = async (
+const CONCEPT_EXPANSION_PROMPT = `
+You are an expert Product Manager and a 10x Principal Engineer rolled into one. You have an elite ability to take a vague, high-level concept and instantly envision a clear, actionable path to a viable Minimum Viable Product (MVP).
+
+Your sole task is to take the user's one-sentence app idea provided at the end of this prompt and immediately expand it into a comprehensive and opinionated **"Refined Project Brief."** This brief must be complete and detailed enough to be used as the direct input for a subsequent, exhaustive documentation generation process.
+
+**CRITICAL RULES:**
+
+1.  **NO QUESTIONS:** Do not ask for clarification. Your value is in making intelligent, industry-standard assumptions and creating a complete, production-ready brief from minimal input.
+2.  **BE OPINIONATED & SPECIFIC:** Make concrete, logical choices. Invent names for the app and its personas. Define specific, numbered KPIs. List exact features. Do not provide options or ranges; provide a single, coherent vision for the MVP.
+3.  **SCOPE FOR AN MVP:** Your default stance is to build a lean, focused MVP. Aggressively define what is essential for a first launch and explicitly list what is out of scope. Think "startup," not "enterprise suite."
+4.  **INFER AND INVENT:** Based on the one-sentence idea, you must infer the target audience, their primary pain points, the core data model (entities), a logical monetization strategy, and a suitable brand personality. Fill in all the blanks.
+5.  **USE THE EXACT OUTPUT FORMAT:** The final output must be a single markdown block with the precise structure defined below.
+
+### **OUTPUT FORMAT**
+
+\`\`\`markdown
+### **Refined Project Brief**
+
+**1. Product Vision & Goal:**
+* **Product Name:** [Invent a plausible, catchy name for the app.]
+* **Problem Statement:** [Infer and state the core problem for the target user in a single, clear sentence.]
+* **Solution/Value Prop:** [Describe how the app uniquely solves this problem in a single sentence.]
+* **North-Star KPI:** [Define the single most important metric for long-term success, e.g., "Weekly Active Projects," "Revenue Per User."]
+* **Launch KPIs:**
+    * [Quantified KPI 1, e.g., "Achieve 500 Weekly Active Users within 8 weeks of launch."]
+    * [Quantified KPI 2, e.g., "User-to-Core-Action conversion rate > 15%."]
+    * [Quantified KPI 3, e.g., "Average user session time > 5 minutes."]
+
+**2. Target Users & Personas:**
+* **Primary Persona:**
+    * **Name:** [Invent a descriptive name, e.g., "Stressed Small Business Owner," "Freelance Graphic Designer," "Busy Graduate Student."]
+    * **Pains:** [List 2-3 specific, inferred frustrations this persona faces.]
+    * **Goals:** [List 2-3 specific outcomes this persona wants to achieve by using the app.]
+* **Secondary Persona:**
+    * **Name:** [Invent a secondary user, e.g., "The Client," "The Team Member," "The Professor."]
+    * **Pains:** [List 2-3 pains relevant to their role.]
+    * **Goals:** [List 2-3 goals relevant to their role.]
+
+**3. Core Features (MVP Scope):**
+* **MUST-HAVE 1 (Core Action):** [Feature Name, e.g., "Secure User Authentication (OAuth + Email)"]. **Description:** [Briefly describe what it does and why it's essential.]
+* **MUST-HAVE 2:** [Feature Name]. **Description:** [Description].
+* **MUST-HAVE 3:** [Feature Name]. **Description:** [Description].
+* **MUST-HAVE 4:** [Feature Name]. **Description:** [Description].
+* **EXPLICITLY OUT OF SCOPE (for MVP):**
+    * [A feature that is a logical but non-essential next step, e.g., "Admin Analytics Dashboard."]
+    * [A feature that adds complexity, e.g., "Real-time collaboration/chat."]
+    * [A feature for power-users, e.g., "Third-party integrations (API)."]
+
+**4. Key Entities & Data Model:**
+* **Core Objects:** [List the main "nouns" of the app, e.g., \`User\`, \`Workspace\`, \`Document\`, \`Comment\`, \`Tag\`.]
+* **Key Relationships:** [Describe the most critical connections, e.g., "A \`User\` owns a \`Workspace\`. A \`Workspace\` has many \`Documents\`. \`Users\` can be invited to \`Documents\` where they can leave \`Comments\`."]
+
+**5. Technical & Design Assumptions:**
+* **Monetization Strategy:** [Choose a single, logical strategy, e.g., "Freemium with a single paid tier ('Pro') unlocking advanced features," "Per-seat SaaS subscription for teams," "Transactional fee on marketplace sales."]
+* **Data Sensitivity:** [Choose a level: "Low (public/non-sensitive data)", "Medium (Standard PII requiring GDPR compliance)", or "High (Financial/Health data requiring PCI/HIPAA compliance)."]
+* **Brand Personality / Style:** [Provide 3-4 keywords to guide design, e.g., "Clean, minimalist, professional, trustworthy," or "Vibrant, friendly, encouraging, simple."]
+\`\`\`
+
+**USER INPUT:**
+`;
+
+export const expandConceptFromIdea = async (
   ideaText: string,
-  _selectedModuleIds: string[], // This parameter is now ignored for constructing the AI prompt
+  onChunkReceived?: (chunk: string) => void
+): Promise<string> => {
+  const apiKey = import.meta.env.VITE_API_KEY;
+
+  if (!apiKey) {
+    console.error("FATAL: Gemini API key is missing in environment variables (VITE_API_KEY). This is a deployment configuration issue.");
+    throw new Error("The AI service is not configured correctly. Please try again later.");
+  }
+
+  const ai = new GoogleGenAI({ apiKey });
+
+  const fullPrompt = CONCEPT_EXPANSION_PROMPT + ideaText;
+
+  try {
+    console.log("Expanding concept from idea using concept expansion prompt...");
+
+    if (onChunkReceived) {
+      const stream = await ai.models.generateContentStream({
+          model: MODEL_NAME,
+          contents: fullPrompt,
+      });
+
+      let accumulatedText = "";
+      for await (const chunk of stream) {
+        const chunkText = chunk.text;
+        if (typeof chunkText === 'string') {
+          accumulatedText += chunkText;
+          onChunkReceived(chunkText);
+        }
+      }
+
+      if (!accumulatedText.trim()) {
+          console.warn("Stream finished but accumulated text is empty. The AI might have returned an empty response.");
+      }
+
+      console.log("Concept expansion stream completed.");
+      return accumulatedText;
+    } else {
+      const result = await ai.models.generateContent({
+          model: MODEL_NAME,
+          contents: fullPrompt,
+      });
+
+      const resultText = result.text;
+      if (typeof resultText !== 'string' || !resultText.trim()) {
+        console.error("Unexpected response format or empty result from Gemini API:", result);
+        throw new Error("Received an unexpected or empty response from the AI for concept expansion.");
+      }
+
+      console.log("Concept expansion completed.");
+      return resultText;
+    }
+
+  } catch (error) {
+    console.error('Error interacting with Gemini API during concept expansion:', error);
+    throw new Error("An error occurred while communicating with the AI service. Please try again.");
+  }
+};
+
+export const generateSpecFromRefinedBrief = async (
+  refinedBrief: string,
+  selectedModuleIds: string[],
   onChunkReceived: (chunk: string) => void
 ): Promise<string> => {
   const apiKey = import.meta.env.VITE_API_KEY;
@@ -379,23 +501,49 @@ export const generateSpecFromIdea = async (
     console.error("FATAL: Gemini API key is missing in environment variables (VITE_API_KEY). This is a deployment configuration issue.");
     throw new Error("The AI service is not configured correctly. Please try again later.");
   }
-  
+
   const ai = new GoogleGenAI({ apiKey });
 
-  // The user's idea text is prepended to the master prompt as context.
+  // Create a filtered version of the prompt based on selected modules
+  const moduleMap = {
+    'prd': '1. **PRD (Product Requirements Document)**',
+    'tech_stack': '2. **Tech Stack Specification**',
+    'project_structure': '3. **Project Structure**',
+    'schema_design': '4. **Schema Design**',
+    'user_flow_textual': '5. **User Flow (textual)**',
+    'user_flow_chart': '6. **User Flow Flow-Chart**',
+    'backend_structure': '7. **Backend Structure**',
+    'implementation_plan': '8. **Implementation Plan**',
+    'project_rules': '9. **Project Rules & Coding Standards**',
+    'security_guidelines': '10. **Security Guidelines**',
+    'styling_guidelines': '11. **Styling Guidelines**'
+  };
+
+  // Build the list of selected modules for the prompt
+  const selectedModulesList = selectedModuleIds
+    .filter(id => moduleMap[id as keyof typeof moduleMap])
+    .map(id => moduleMap[id as keyof typeof moduleMap])
+    .join('\n');
+
+  const filteredPrompt = NEW_MASTER_SPEC_GENERATION_PROMPT.replace(
+    /1\. \*\*PRD.*?11\. \*\*Styling Guidelines\*\*/s,
+    selectedModulesList
+  );
+
+  // The refined brief is prepended to the master prompt as context.
   const fullPrompt = `
-Based on the following user-provided application idea, please generate the comprehensive documentation as described in the subsequent instructions:
+Based on the following refined project brief, please generate the comprehensive documentation as described in the subsequent instructions:
 
---- USER'S APP IDEA START ---
-${ideaText}
---- USER'S APP IDEA END ---
+--- REFINED PROJECT BRIEF START ---
+${refinedBrief}
+--- REFINED PROJECT BRIEF END ---
 
-${NEW_MASTER_SPEC_GENERATION_PROMPT}
+${filteredPrompt}
   `;
 
   try {
-    console.log("Generating full specification using the new master prompt (streaming)...");
-    
+    console.log("Generating full specification from refined brief using the master prompt (streaming)...");
+
     const stream = await ai.models.generateContentStream({
         model: MODEL_NAME,
         contents: fullPrompt,
@@ -409,7 +557,7 @@ ${NEW_MASTER_SPEC_GENERATION_PROMPT}
         onChunkReceived(chunkText);
       }
     }
-    
+
     if (!accumulatedText.trim()) {
         console.warn("Stream finished but accumulated text is empty. The AI might have returned an empty response.");
     }
@@ -422,6 +570,26 @@ ${NEW_MASTER_SPEC_GENERATION_PROMPT}
     // Generic error for the user. Specifics are logged to the console for the developer.
     throw new Error("An error occurred while communicating with the AI service. Please try again.");
   }
+};
+
+export const generateSpecFromIdea = async (
+  ideaText: string,
+  selectedModuleIds: string[],
+  onChunkReceived: (chunk: string) => void,
+  onConceptExpansionChunkReceived?: (chunk: string) => void,
+  onConceptExpansionComplete?: (refinedBrief: string) => void
+): Promise<string> => {
+  console.log("Starting two-step process: concept expansion followed by spec generation...");
+
+  // Step 1: Expand the concept
+  const refinedBrief = await expandConceptFromIdea(ideaText, onConceptExpansionChunkReceived);
+
+  if (onConceptExpansionComplete) {
+    onConceptExpansionComplete(refinedBrief);
+  }
+
+  // Step 2: Generate the specification from the refined brief
+  return await generateSpecFromRefinedBrief(refinedBrief, selectedModuleIds, onChunkReceived);
 };
 
 export const elaborateOnSection = async (sectionContent: string, userQuestion: string): Promise<string> => {
