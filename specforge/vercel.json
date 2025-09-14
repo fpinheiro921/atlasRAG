@@ -1,12 +1,9 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/node",
-      "config": { "buildCommand": "npm install && npx vite build" }
-    }
-  ],
-  "routes": [{ "handle": "filesystem" }, { "src": "/(.*)", "dest": "/index.html" }],
-  "outputDirectory": "dist"
+  "buildCommand": "cd specforge && npm install && npm run build",
+  "outputDirectory": "specforge/dist",
+  "framework": "vite",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }
