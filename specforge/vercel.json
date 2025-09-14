@@ -1,7 +1,12 @@
 {
   "version": 2,
-  "buildCommand": "npm install && npx vite build",
-  "outputDirectory": "dist",
-  "framework": "vite",
-  "installCommand": "npm install"
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/node",
+      "config": { "buildCommand": "npm install && npx vite build" }
+    }
+  ],
+  "routes": [{ "handle": "filesystem" }, { "src": "/(.*)", "dest": "/index.html" }],
+  "outputDirectory": "dist"
 }
