@@ -1,9 +1,0 @@
-{
-  "projects": {
-    "default": "atlas-rag-prod",
-    "dev": "atlas-rag-dev",
-    "prod": "atlas-rag-prod"
-  },
-  "targets": {},
-  "etags": {}
-}
