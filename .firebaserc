@@ -1,8 +1,7 @@
 {
   "projects": {
-    "default": "atlas-rag-prod",
-    "dev": "atlas-rag-dev",
-    "prod": "atlas-rag-prod"
+    "default": "atlas-6c90e",
+    "prod": "atlas-6c90e"
   },
   "targets": {},
   "etags": {}
