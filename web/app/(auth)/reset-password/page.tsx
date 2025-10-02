@@ -77,10 +77,10 @@ export default function ResetPasswordPage() {
                 Email Sent
               </h2>
               <p className="text-slate-400">
-                We've sent password reset instructions to <span className="text-slate-200 font-semibold">{email}</span>
+                We&apos;ve sent password reset instructions to <span className="text-slate-200 font-semibold">{email}</span>
               </p>
               <p className="text-sm text-slate-500">
-                Didn't receive the email? Check your spam folder or try again.
+                Didn&apos;t receive the email? Check your spam folder or try again.
               </p>
               <div className="pt-4 space-y-3">
                 <Button
@@ -120,7 +120,7 @@ export default function ResetPasswordPage() {
                 Reset Password
               </h2>
               <p className="text-slate-400 mb-6">
-                Enter your email address and we'll send you instructions to reset your password.
+                Enter your email address and we&apos;ll send you instructions to reset your password.
               </p>
 
               <form onSubmit={handleSubmit} className="space-y-6">
