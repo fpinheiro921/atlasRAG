@@ -1,0 +1,16 @@
+{
+  "name": "atlas-rag",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "install:all": "npm install && cd web && npm install && cd ../functions && npm install",
+    "dev": "cd web && npm run dev",
+    "dev:emulators": "firebase emulators:start --import=./seed-data",
+    "build": "cd web && npm run build",
+    "deploy:functions": "firebase deploy --only functions",
+    "deploy:firestore": "firebase deploy --only firestore"
+  },
+  "devDependencies": {
+    "firebase-tools": "^13.0.0"
+  }
+}
